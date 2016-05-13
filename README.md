@@ -935,6 +935,966 @@ void Graph::shortestPath(int s)
 
 
 ========================
+Shortest path with exactly k edges in a directed and weighted graph
+========================
+// A naive recursive function to count walks from u to v with k edges
+int shortestPath(int graph[][V], int u, int v, int k)
+{
+   // Base cases
+   if (k == 0 && u == v)             return 0;
+   if (k == 1 && graph[u][v] != INF) return graph[u][v];
+   if (k <= 0)                       return INF;
+ 
+   // Initialize result
+   int res = INF;
+ 
+   // Go to all adjacents of u and recur
+   for (int i = 0; i < V; i++)
+   {
+       if (graph[u][i] != INF && u != i && v != i)
+       {
+           int rec_res = shortestPath(graph, i, v, k-1);
+           if (rec_res != INF)
+              res = min(res, graph[u][i] + rec_res);
+       }
+   }
+   return res;
+}
+
+
+========================
+Minimum Spanning Tree
+========================
+Minimum Spanning Tree (MST) problem: Given connected graph G with positive edge weights, find a min weight set of edges that connects all of the vertices.
+Network design.– telephone, electrical, hydraulic, TV cable, computer, road
+
+========================
+Minimum Spanning Tree (Kruskal’s)
+========================
+1. Sort all the edges in non-decreasing order of their weight. 
+2. Pick the smallest edge. Check if it forms a cycle with the spanning tree formed so far. If cycle is not formed, include this edge. Else, discard it. 
+3. Repeat step#2 until there are (V-1) edges in the spanning tree.
+4. // A structure to represent a subset for union-find
+struct subset
+{
+    int parent;
+    int rank;
+};
+// A utility function to find set of an element i
+// (uses path compression technique)
+int find(struct subset subsets[], int i)
+{
+    // find root and make root as parent of i (path compression)
+    if (subsets[i].parent != i)
+        subsets[i].parent = find(subsets, subsets[i].parent);
+    return subsets[i].parent;
+}
+// A function that does union of two sets of x and y
+// (uses union by rank)
+void Union(struct subset subsets[], int x, int y)
+{
+    int xroot = find(subsets, x);
+    int yroot = find(subsets, y);
+    // Attach smaller rank tree under root of high rank tree
+    // (Union by Rank)
+    if (subsets[xroot].rank < subsets[yroot].rank)
+        subsets[xroot].parent = yroot;
+    else if (subsets[xroot].rank > subsets[yroot].rank)
+        subsets[yroot].parent = xroot;
+    // If ranks are same, then make one as root and increment
+    // its rank by one
+    else
+    {
+        subsets[yroot].parent = xroot;
+        subsets[xroot].rank++;
+    }
+}
+
+void KruskalMST(struct Graph* graph)
+{
+    int V = graph->V;
+    struct Edge result[V];  // Tnis will store the resultant MST
+    int e = 0;  // An index variable, used for result[]
+    int i = 0;  // An index variable, used for sorted edges
+    // Step 1:  Sort all the edges in non-decreasing order of their weight
+    // If we are not allowed to change the given graph, we can create a copy of
+    // array of edges
+    qsort(graph->edge, graph->E, sizeof(graph->edge[0]), myComp);
+    // Allocate memory for creating V ssubsets
+    struct subset *subsets =
+        (struct subset*) malloc( V * sizeof(struct subset) );
+     // Create V subsets with single elements
+    for (int v = 0; v < V; ++v)
+    {
+        subsets[v].parent = v; subsets[v].rank = 0;
+    }
+    // Number of edges to be taken is equal to V-1
+    while (e < V - 1)
+    {
+        // Step 2: Pick the smallest edge. And increment the index
+        // for next iteration
+        struct Edge next_edge = graph->edge[i++];
+        int x = find(subsets, next_edge.src);
+        int y = find(subsets, next_edge.dest);
+        // If including this edge does't cause cycle, include it
+        // in result and increment the index of result for next edge
+        if (x != y)
+        {
+            result[e++] = next_edge;
+            Union(subsets, x, y);
+        }
+        // Else discard the next_edge
+    }
+    // print the contents of result[] to display the built MST
+    return;
+}
+
+
+========================
+Minimum Spanning Tree (Prim’s)
+========================
+void primMST(int graph[V][V])
+{
+     int parent[V]; // Array to store constructed MST
+     int key[V];   // Key values used to pick minimum weight edge in cut
+     bool mstSet[V];  // To represent set of vertices not yet included in MST
+     // Initialize all keys as INFINITE
+     for (int i = 0; i < V; i++)
+        key[i] = INT_MAX, mstSet[i] = false;
+     // Always include first 1st vertex in MST.
+     key[0] = 0;     // Make key 0 so that this vertex is picked as first vertex
+     parent[0] = -1; // First node is always root of MST 
+     // The MST will have V vertices
+     for (int count = 0; count < V-1; count++)
+     {
+        // Pick thd minimum key vertex from the set of vertices
+        // not yet included in MST
+        int u = minKey(key, mstSet);
+        // Add the picked vertex to the MST Set
+        mstSet[u] = true;
+        // Update key value and parent index of the adjacent vertices of
+        // the picked vertex. Consider only those vertices which are not yet
+        // included in MST
+        for (int v = 0; v < V; v++)
+           // graph[u][v] is non zero only for adjacent vertices of m
+           // mstSet[v] is false for vertices not yet included in MST
+           // Update the key only if graph[u][v] is smaller than key[v]
+          if (graph[u][v] && mstSet[v] == false && graph[u][v] <  key[v])
+             parent[v]  = u, key[v] = graph[u][v];
+     }
+     printMST(parent, V, graph);      // print the constructed MST
+}
+// A utility function to find the vertex with minimum key value, from
+// the set of vertices not yet included in MST
+int minKey(int key[], bool mstSet[])
+{
+   // Initialize min value
+   int min = INT_MAX, min_index;
+ 
+   for (int v = 0; v < V; v++)
+     if (mstSet[v] == false && key[v] < min)
+         min = key[v], min_index = v;
+ 
+   return min_index;
+}
+ 
+// A utility function to print the constructed MST stored in parent[]
+int printMST(int parent[], int n, int graph[V][V])
+{
+   printf("Edge   Weight\n");
+   for (int i = 1; i < V; i++)
+      printf("%d - %d    %d \n", parent[i], i, graph[i][parent[i]]);
+}
+
+
+========================
+Dynamic Programming
+========================
+Dynamic Programming is an algorithmic paradigm that solves a given complex problem by breaking it into subproblems and stores the results of subproblems to avoid computing the same results again. 
+Overlapping Sub Problem
+In dynamic programming, computed solutions to subproblems are stored in a table so that these don’t have to recomputed. 
+There are following two different ways to store the values so that these values can be reused. 
+	Memoization (Top Down): 	Tabulation (Bottom Up): 
+Optimal Substructure: 
+A given problems has Optimal Substructure Property if optimal solution of the given problem can be obtained by using optimal solutions of its subproblems.
+
+
+========================
+Cut Rod
+========================
+/* Returns the best obtainable price for a rod of length n and
+   price[] as prices of different pieces */
+int cutRod(int price[], int n)
+{
+   int val[n+1];
+   val[0] = 0;
+   int i, j;
+ 
+   // Build the table val[] in bottom up manner and return the last entry
+   // from the table
+   for (i = 1; i<=n; i++)
+   {
+       int max_val = INT_MIN;
+       for (j = 0; j < i; j++)
+         max_val = max(max_val, price[j] + val[i-j-1]);
+       val[i] = max_val;
+   }
+ 
+   return val[n];
+}
+
+
+========================
+Bus Fare Problem based on Cut Rod
+========================
+int minFare(int fare[], int n, int distance) {
+    int knapsack[9999];
+    knapsack[0] = 0;
+    int i, j;
+    for (j = 1; j <= distance; j++)
+   {
+        int min = 1000000;
+        for (i = 0; i<n && i<distance; i++) 
+       {
+            int x = j - (i + 1);
+            if (x >= 0 && (knapsack[x] + fare[i]) < min) 
+           {
+               min = knapsack[x] + fare[i];
+          }
+       }
+       knapsack[j] = min;
+    }
+    return knapsack[distance];
+}
+
+========================
+Stairs Problem
+========================
+max_array[0] = 0;
+max_array[1] = array[1];
+max_array[2] = array[1] + array[2];
+for (i = 3; i <= N; i++)
+{
+    int x = max_array[i - 3] + array[i - 1] + array[i];
+    int y = max_array[i - 2] + array[i];
+   if (x>y)
+       max_array[i] = x;
+   else
+      max_array[i] = y;
+}
+Answer = max_array[N];
+
+========================
+Greedy
+========================
+Greedy is an algorithmic paradigm that builds up a solution piece by piece, always choosing the next piece that offers the most obvious and immediate benefit. 
+Greedy algorithms are used for optimization problems. An optimization problem can be solved using Greedy if the problem has the following property: 
+At every step, we can make a choice that looks best at the moment, and we get the optimal solution of the complete problem.
+Examples
+Kruskal’s Minimum Spanning Tree (MST): 
+ Prim’s Minimum Spanning Tree
+Dijkstra’s Shortest Path
+
+========================
+Binary to Decimal
+========================
+int binary_decimal(int* binary, int size)
+{
+    int dec = binary[0];
+
+    for (int i = 0; i < size-1; i++)
+   {
+       //Double and Add
+       dec = (dec * 2) + binary[i + 1];
+   }
+    return dec;
+}
+
+int binary_decimal(int num)
+{
+    int decimal_val = 0, base =1, rem=0;
+    while (num > 0)
+   {
+       rem = num % 10;
+       decimal_val = decimal_val + rem * base;
+       num = num / 10;
+       base = base * 2;
+   }
+   return decimal_val;
+}
+
+========================
+Power
+========================
+/* Function to calculate x raised to the power y */
+int power(int x, unsigned int y)
+{
+    if (y == 0)
+        return 1;
+    else if (y % 2 == 0)
+        return power(x, y / 2)*power(x, y / 2);
+     else
+        return x*power(x, y / 2)*power(x, y / 2);
+}
+
+========================
+GCD
+========================
+int gcd_it(int a, int b)
+{
+    int temp;
+    while (b > 0)
+    {
+        temp = a%b;
+        a = b;
+        b = temp;
+    }
+    return a;
+}
+
+int gcd(int a, int b)
+{
+    if (a == 0)
+        return b;
+    return gcd(b%a, a);
+}
+
+
+========================
+Fibonacci
+========================
+int fib(int n)
+{
+    if (n <= 1)
+        return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+int fib(int n)
+{
+    /* Declare an array to store Fibonacci numbers. */
+    int f[MAX + 1];
+    int i;
+
+    /* 0th and 1st number of the series are 0 and 1*/
+    f[0] = 0;
+    f[1] = 1;
+
+    for (i = 2; i <= n; i++)
+    {
+        /* Add the previous 2 numbers in the series and store it */
+        f[i] = f[i - 1] + f[i - 2];
+    }
+    return f[n];
+}
+
+========================
+Min-Max
+========================
+struct pair
+{
+    int min;
+    int max;
+};
+
+struct pair getMinMax(int arr[], int low, int high)
+{
+    struct pair minmax, mml, mmr;
+    int mid;
+
+   /* If there is only one element */
+   if (low == high)
+   {
+       minmax.max = arr[low];
+       minmax.min = arr[low];
+       return minmax;
+   }
+
+
+   /* If there are two elements */
+   if (high == low + 1)
+   {
+        if (arr[low] > arr[high])
+       {
+           minmax.max = arr[low];
+           minmax.min = arr[high];
+       }
+       else
+      {
+           minmax.max = arr[high];
+           minmax.min = arr[low];
+      }
+      return minmax;
+   }
+    /* If there are more than 2 elements */
+    mid = (low + high) / 2;
+    mml = getMinMax(arr, low, mid);
+    mmr = getMinMax(arr, mid + 1, high);
+
+   /* compare minimums of two parts*/
+   if (mml.min < mmr.min)
+       minmax.min = mml.min;
+   else
+       minmax.min = mmr.min;
+
+    /* compare maximums of two parts*/
+   if (mml.max > mmr.max)
+       minmax.max = mml.max;
+   else
+       minmax.max = mmr.max;
+
+    return minmax;
+}
+
+========================
+Sub-Matrix
+========================
+1) Construct a sum matrix S[R][C] for the given M[R][C].
+     a)	Copy first row and first columns as it is from M[][] to S[][]
+     b)	For other entries, use following expressions to construct S[][]
+         If M[i][j] is 1 then
+            S[i][j] = min(S[i][j-1], S[i-1][j], S[i-1][j-1]) + 1
+         Else /*If M[i][j] is 0*/
+            S[i][j] = 0
+2) Find the maximum entry in S[R][C]
+3) Using the value and coordinates of maximum entry in S[i], print 
+   sub-matrix of M[][]
+
+void printMaxSubSquare(bool M[R][C])
+{
+  int i,j;
+  int S[R][C];
+  int max_of_s, max_i, max_j; 
+  
+  /* Set first column of S[][]*/
+  for(i = 0; i < R; i++)
+     S[i][0] = M[i][0];
+  
+  /* Set first row of S[][]*/    
+  for(j = 0; j < C; j++)
+     S[0][j] = M[0][j];
+
+
+      
+  /* Construct other entries of S[][]*/
+  for(i = 1; i < R; i++)
+  {
+    for(j = 1; j < C; j++)
+    {
+      if(M[i][j] == 1) 
+        S[i][j] = min(S[i][j-1], S[i-1][j], S[i-1][j-1]) + 1;
+      else
+        S[i][j] = 0;
+    }    
+  } 
+  /* Find the maximum entry, and indexes of maximum entry 
+     in S[][] */
+  max_of_s = S[0][0]; max_i = 0; max_j = 0;
+  for(i = 0; i < R; i++)
+  {
+    for(j = 0; j < C; j++)
+    {
+      if(max_of_s < S[i][j])
+      {
+         max_of_s = S[i][j];         max_i = i;          max_j = j;
+      }        
+    }                 
+  }     
+  printf("\n Maximum size sub-matrix is: \n");
+  for(i = max_i; i > max_i - max_of_s; i--)
+  {
+    for(j = max_j; j > max_j - max_of_s; j--)
+    {
+      printf("%d ", M[i][j]);
+    }  
+  }  
+}   
+
+========================
+Taekwondo
+========================
+for (i = 0; i < G1; i++) //small group
+{
+    for (j = 0; j < G2 - G1 + 1; j++) //big group
+    {
+        float diff;
+        if (group1[i] > group2[i + j])
+            diff = group1[i] - group2[i + j];
+        else
+            diff = group2[i + j] - group1[i];
+        value[j] = value[j] + diff;
+        if (j>0 && value[j]>value[j - 1])
+             value[j] = value[j - 1];
+    }
+}
+
+Answer = value[G2 - G1];
+
+========================
+Chocolate
+========================
+int N;
+long long int interns[10001];
+long long int i, j;
+long long int min = 2000000000;
+scanf("%d", &N);
+for (i = 0; i < N; i++)
+{
+    scanf("%d", &interns[i]);
+    if (interns[i] < min)
+        min = interns[i];
+}
+Answer = 2000000000;
+for (i = 0; i < 5; i++)
+{
+    long long int temp;
+    temp = solve(min - i, N, interns);
+    if (temp < Answer)
+        Answer = temp;
+}
+long long int solve(long long int a, long long int N, long long int* array)
+{
+    long long int i,ans=0;
+    for (i = 0; i < N; i++)
+    {
+        long long int temp = array[i] - a;
+       //ans = ans + ((temp / 5) + ((temp % 5) / 2) + ((temp % 5) % 2));
+         if (temp >= 5)
+        {
+            ans += temp / 5;
+            temp = temp % 5;
+        }
+        if (temp >= 2)
+        {
+            ans += temp / 2;
+           temp = temp % 2;
+       }
+       ans += temp;
+    }
+    return ans;
+}
+
+========================
+Coin Change (Dynamic)
+========================
+int count( int S[], int m, int n )
+{
+    // table[i] will be storing the number of solutions for
+    // value i. We need n+1 rows as the table is consturcted
+    // in bottom up manner using the base case (n = 0)
+    int table[n+1];
+ 
+    // Initialize all table values as 0
+    memset(table, 0, sizeof(table));
+ 
+    // Base case (If given value is 0)
+    table[0] = 1;
+ 
+    // Pick all coins one by one and update the table[] values
+    // after the index greater than or equal to the value of the
+    // picked coin
+    for(int i=0; i<m; i++)
+        for(int j=S[i]; j<=n; j++)
+            table[j] += table[j-S[i]];
+ 
+    return table[n];
+}
+
+// m is size of coins array (number of different coins)
+int minCoins(int coins[], int m, int V)
+{
+    // table[i] will be storing the minimum number of coins
+    // required for i value.  So table[V] will have result
+    int table[V+1];
+ 
+    // Base case (If given value V is 0)
+    table[0] = 0;
+ 
+    // Initialize all table values as Infinite
+    for (int i=1; i<=V; i++)
+        table[i] = INT_MAX;
+ 
+    // Compute minimum coins required for all
+    // values from 1 to V
+    for (int i=1; i<=V; i++)
+    {
+        // Go through all coins smaller than i
+        for (int j=0; j<m; j++)
+          if (coins[j] <= i)
+          {
+              int sub_res = table[i-coins[j]];
+              if (sub_res != INT_MAX && sub_res + 1 < table[i])
+                  table[i] = sub_res + 1;
+          }
+    }
+    return table[V];
+}
+
+
+========================
+Knapsack (0-1)
+========================
+// Returns the maximum value that can be put in a knapsack of capacity W
+int knapSack(int W, int wt[], int val[], int n)
+{
+   int i, w;
+   int K[n+1][W+1];
+ 
+   // Build table K[][] in bottom up manner
+   for (i = 0; i <= n; i++)
+   {
+       for (w = 0; w <= W; w++)
+       {
+           if (i==0 || w==0)
+               K[i][w] = 0;
+           else if (wt[i-1] <= w)
+                 K[i][w] = max(val[i-1] + K[i-1][w-wt[i-1]],  K[i-1][w]);
+           else
+                 K[i][w] = K[i-1][w];
+       }
+   }
+ 
+   return K[n][W];
+}
+
+
+========================
+Knapsack – Fractional (Greedy)
+========================
+// Main greedy function to solve problem
+double fractionalKnapsack(int W, struct Item arr[], int n)
+{
+    //    sorting Item on basis of ration
+    sort(arr, arr + n, cmp);
+    int curWeight = 0;  // Current weight in knapsack
+    double finalvalue = 0.0; // Result (value in Knapsack)
+ 
+    // Looping through all Items
+    for (int i = 0; i < n; i++)
+    {
+        // If adding Item won't overflow, add it completely
+        if (curWeight + arr[i].weight <= W)
+        {
+            curWeight += arr[i].weight;
+            finalvalue += arr[i].value;
+        }
+        // If we can't add current Item, add fractional part of it
+        else
+        {
+            int remain = W - curWeight;
+            finalvalue += arr[i].value * ((double) remain / arr[i].weight);
+            break;
+        }
+    }
+    // Returning final value
+    return finalvalue;
+}
+
+
+========================
+Celebrity
+========================
+bool HaveAcquiantance(int a, int b) { return MATRIX[a][b]; }
+int Celebrity[4];
+int findCelebrity(int size)
+{
+    /* Initialize all as celebrity */
+    for (int i = 0; i < size; i++)
+    Celebrity[i] = 1;
+
+    for (int i = 0; i < size; i++)
+    {
+        if (Celebrity[i] == 1)
+        {
+            for (int j = i+1; j < size; j++)
+            {
+                 if (HaveAcquiantance(i, j))
+                 {
+                      Celebrity[i] = 0;
+                      break;
+                 }
+                  else
+                 {
+                      Celebrity[j] = 0;
+                 }
+              }
+          }
+     }
+    int potential_celeb=-1;
+    for (int i = 0; i < size; i++)
+    {
+        if (Celebrity[i] == 1)
+        {
+             potential_celeb = i;
+              break;
+          }
+     }
+     if (potential_celeb == -1)
+         return -1;
+
+     for (int i = 0; i < size; i++)
+    {
+         if (i == potential_celeb)
+             continue;
+         if (HaveAcquiantance(potential_celeb, i))
+            return -1;
+         if (!HaveAcquiantance(i, potential_celeb))
+             return -1;
+    }
+    return potential_celeb;
+}
+
+========================
+Subset Sum
+========================
+// inputs // s            - set vector// t            - tuplet vector// s_size       - set size
+// t_size       - tuplet size so far// sum          - sum so far// ite          - nodes count  // target_sum   - sum to be found
+void subset_sum(int s[], int t[],int s_size, int t_size,int sum, int ite,int const target_sum)
+{
+    total_nodes++;
+    if (target_sum == sum)
+    {
+        printSubset(t, t_size); // We found sum
+        if (ite + 1 < s_size && sum - s[ite] + s[ite + 1] <= target_sum)
+        {
+            // Exclude previous added item and consider next candidate
+            subset_sum(s, t, s_size, t_size - 1, sum - s[ite], ite + 1, target_sum);
+        }
+        return;
+    }
+    else
+    {
+        if (ite < s_size && sum + s[ite] <= target_sum)
+        {
+             // generate nodes along the breadth
+            for (int i = ite; i < s_size; i++)
+           { 
+               t[t_size] = s[i];
+               if (sum + s[i] <= target_sum)
+              {
+                  // consider next level node (along depth)
+                  subset_sum(s, t, s_size, t_size + 1, sum + s[i], i + 1, target_sum);
+              }
+           }
+       }
+   }
+}
+
+========================
+Tower of Hanoi
+========================
+void tower(int n, char sourcePole, char destinationPole, char auxiliaryPole)
+{
+    // Base case (termination condition)
+    if (0 == n)
+        return;
+
+    // Move first n-1 disks from source pole
+    // to auxiliary pole using destination as
+    // temporary pole
+    tower(n - 1, sourcePole, auxiliaryPole,destinationPole);
+
+    // Move the remaining disk from source
+    // pole to destination pole
+    printf("Move the disk %d from %c to %c\n", n,sourcePole, destinationPole);
+
+    // Move the n-1 disks from auxiliary (now source)
+    // pole to destination pole using source pole as
+    // temporary (auxiliary) pole
+    tower(n - 1, auxiliaryPole, destinationPole, sourcePole);
+}
+
+========================
+Union- Find Algorithm
+========================
+// A utility function to find the subset of an element i
+int find(int parent[], int i)
+{
+    if (parent[i] == -1)
+        return i;
+    return find(parent, parent[i]);
+}
+ 
+// A utility function to do union of two subsets 
+void Union(int parent[], int x, int y)
+{
+    int xset = find(parent, x);
+    int yset = find(parent, y);
+    parent[xset] = yset;
+}
+ 
+
+// The main function to check whether a given graph contains 
+// cycle or not
+int isCycle( struct Graph* graph )
+{
+    // Allocate memory for creating V subsets
+    int *parent = (int*) malloc( graph->V * sizeof(int) );
+ 
+    // Initialize all subsets as single element sets
+    memset(parent, -1, sizeof(int) * graph->V);
+ 
+    // Iterate through all edges of graph, find subset of both
+    // vertices of every edge, if both subsets are same, then 
+    // there is cycle in graph.
+    for(int i = 0; i < graph->E; ++i)
+    {
+        int x = find(parent, graph->edge[i].src);
+        int y = find(parent, graph->edge[i].dest);
+ 
+        if (x == y)
+            return 1;
+ 
+        Union(parent, x, y);
+    }
+    return 0;
+}
+
+========================
+Quick sort
+========================
+int partition(int* array, int p, int r)
+{
+    int pivot = array[p];
+    int i = p;
+    int j;
+    for (j = p+1 ; j <= r; j++)
+   {
+        if (array[j] <= pivot)
+       {
+           i = i + 1;
+           swap(&array[i],&array[j]);
+      }
+   }
+   swap(&array[i], &array[p]);
+   return i;
+}
+
+int quick_sort(int* array, int p, int r)
+{
+    if (p < r)
+    {
+        int q = partition(array, p, r);
+        quick_sort(array, p, q - 1);
+        quick_sort(array, q + 1, r);
+    }
+    return 1;
+}
+
+========================
+Back Tracking
+========================
+int N;
+int Ballon[10] = { 0 };
+int Visited[10] = { 0 };
+int data[10] = { 0 };
+int count;
+void dfs_backtracking()
+{
+    int i = 0;
+    for (i = 0; i < N; i++)
+    {
+        if (!Visited[i])
+       {
+           Visited[i] = 1;
+           data[count++] = Ballon[i];
+           if (count == N)
+          {
+                Visited[i] = 0;
+                for (int j = 0; j < N; j++)
+                printf("%d ", data[j]);
+                printf("\n");
+                data[count--] = 0;
+                return;
+            }
+            dfs_backtracking();
+            Visited[i] = 0;
+            data[count--] = 0;
+         }
+    }
+}
+
+========================
+Balloon Shot
+========================
+int max_cost;
+int N;
+int Ballon[10] = { 0 };
+int Visited[10] = { 0 };
+int data[10] = { 0 };
+int count;
+int get_left(int src)
+{
+    while (src>0)
+    {
+        src--;
+        if (!Visited[src])
+            return src;
+    }
+    return -1;
+}
+
+int get_right(int src)
+{
+    while (src<N-1)
+    {
+         src++;
+         if (!Visited[src])
+             return src;
+    } 
+    return -1;
+}
+
+
+void ballon_shot(int cur_cost)
+{
+    int i = 0;
+    for (i = 0; i < N; i++)
+    {
+         if (!Visited[i])
+        {
+             int left, right;
+             Visited[i] = 1;
+             data[count++] = Ballon[i];
+             left = get_left(i);
+             right = get_right(i);
+             if (left == -1 && right == -1)
+            {
+                 if (cur_cost + Ballon[i] > max_cost)
+                     max_cost = cur_cost + Ballon[i];
+                 Visited[i] = 0;
+                 for (int j = 0; j < N;j++)
+                     printf("%d ", data[j]);
+                 printf("\n%d\n", cur_cost + Ballon[i]);
+                 data[count--] = 0;
+                return;
+            }
+            else if (left == -1 && right != -1)
+            {
+                ballon_shot(cur_cost + Ballon[right]);
+            }
+            else if (left != -1 && right == -1)
+            {
+                ballon_shot(cur_cost + Ballon[left]);
+            }
+            else
+            {
+                 ballon_shot(cur_cost + Ballon[left] * Ballon[right]);
+            }
+            Visited[i] = 0;
+            data[count--] = 0;
+        }     
+    }
+}
+
+========================
+========================
+========================
+========================
+========================
+========================
+========================
+========================
 ========================
 ========================
 ========================
